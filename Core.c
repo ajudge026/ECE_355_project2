@@ -26,21 +26,21 @@ Core *initCore(Instruction_Memory *i_mem)
 
 // FIXME, implement this function
 bool tickFunc(Core *core)
-{
-    // Steps may include
+{           
+	// *********** organized by processing stages (lecture notes #9 )****************
+	
+	//** instruction fetch **
+	// Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
-    
-    // (Step 2) ...
-    
-    // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
+	signal incremented_instruction core->PC += 4;	
+	//** decoding / reg reading  **
+	
 	// call control unit 
 	signal control_unit_input = (instruction / 64);
 	// run immGen 
-	signal ImmeGen_sig = ImmeGen(instruction);
-	ControlUnit(control_unit_input, ControlSignals *signals);
-	//Alu control 
-	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
+	signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
+	
 	//get reg values
 	
 	// get inputs for reg file from instructions
@@ -57,14 +57,16 @@ bool tickFunc(Core *core)
 		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
 	else
 	}
-	// mux1
-	signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
-	// Reading / writing regs 	
+	// Reading / writing regs 		
 	ALU(reg_read_1,mux_1_signal,aluControlResult,Signal *ALU_result,Signal *zero);
 	//call 
-	
-	
-	signal incremented_instruction core->PC += 4;
+	// ** execute / address calc
+	// mux1
+	signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
+	ControlUnit(control_unit_input, ControlSignals *signals);
+	//Alu control 
+	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
+
 	signal branch_location = Add(incremented_instruction,aluControlResult<<1);
 	// mux 3
 	signal mux_3_control = *zero && signals->Branch ;
@@ -100,8 +102,20 @@ void ControlUnit(Signal input,
 	// For I-type -- ld
     if (input == 3)
     {
-        signals->ALUSrc = 0;
+        signals->ALUSrc = 1;
         signals->MemtoReg = 1;
+        signals->RegWrite = 1;
+        signals->MemRead = 1;
+        signals->MemWrite = 0;
+        signals->Branch = 0;
+        signals->ALUOp = 3;
+    }
+	
+	// For I-type -- slli 
+    if (input == 3)
+    {
+        signals->ALUSrc = 1;
+        signals->MemtoReg = 0;
         signals->RegWrite = 1;
         signals->MemRead = 1;
         signals->MemWrite = 0;
