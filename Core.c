@@ -55,9 +55,11 @@ bool tickFunc(Core *core)
 	{
 		reg_read_1 = core->reg_file[reg_index_1];
 		reg_read_2 = core->reg_file[reg_index_2];
+	}
 	else if (signals->RegWrite == 1)		
+	{
 		core->reg_file[reg_index_1] = 0:// result of memory manipulation Mux all the way to the right
-	else
+	
 	}
 	
 	//call 
