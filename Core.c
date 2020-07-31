@@ -1,4 +1,5 @@
 #include "Core.h"
+#include "Registers.h"
 
 Core *initCore(Instruction_Memory *i_mem)
 {
@@ -10,9 +11,15 @@ Core *initCore(Instruction_Memory *i_mem)
 
     // FIXME, initialize register file here.
     // core->data_mem[0] = ...
+	core -> data_mem[0] = 16;
+	core -> data_mem[1] = 128;
+	core -> data_mem[2] = 8;
+	core -> data_mem[3] = 4;
 
     // FIXME, initialize data memory here.
-    // core->reg_file[0] = ...
+    core->reg_file[25] = 4;
+	core->reg_file[10] = 4;
+	core->reg_file[22] = 1;
 
     return core;
 }
@@ -27,7 +34,24 @@ bool tickFunc(Core *core)
     // (Step 2) ...
     
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
-    core->PC += 4;
+	// call control unit 
+	ControlUnit(instruction, ControlSignals *signals);
+	//Alu control 
+	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
+	//get reg values
+	
+	// call alu ---> don't know how to handle the registers 	
+	ALU(reg_file[0],reg_file[0],aluControlResult,Signal *ALU_result,Signal *zero);
+	//call 
+	
+	
+	 if (1) // figure out conditional. Mux control on the left? 
+	 {
+		core->PC += 4;
+	 else
+		 core->PC = ;
+	 }
+    
 
     ++core->clk;
     // Are we reaching the final instruction?
@@ -53,6 +77,17 @@ void ControlUnit(Signal input,
         signals->Branch = 0;
         signals->ALUOp = 2;
     }
+	// For I-type -- ld
+    if (input == 3)
+    {
+        signals->ALUSrc = 0;
+        signals->MemtoReg = 1;
+        signals->RegWrite = 1;
+        signals->MemRead = 1;
+        signals->MemWrite = 0;
+        signals->Branch = 0;
+        signals->ALUOp = 3;
+    }
 }
 
 // FIXME (2). ALU Control Unit. Refer to Figure 4.12.
@@ -65,12 +100,18 @@ Signal ALUControlUnit(Signal ALUOp,
     {
         return 2;
     }
+	// For ldd
+    if (ALUOp == 2 && Funct3 == 7)
+    {
+        return 3;
+    }
+	
 }
 
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input)
 {
-
+	ImmeGen = input;
 }
 
 // FIXME (4). ALU
@@ -86,6 +127,13 @@ void ALU(Signal input_0,
         *ALU_result = (input_0 + input_1);
         if (*ALU_result == 0) { *zero = 1; } else { *zero = 0; }
     }
+	// For ld
+    if (ALU_ctrl_signal == 3)
+    {
+        *ALU_result = input_1;
+        if (*ALU_result == 0) { *zero = 1; } else { *zero = 0; }
+    }
+	
 }
 
 // (4). MUX
