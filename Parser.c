@@ -1,158 +1,260 @@
-#include "Core.h"
-#include "Registers.h"
+#include "Parser.h"
 
-Core *initCore(Instruction_Memory *i_mem)
+// FIXME, implement this function.
+// Here shows an example on how to translate "add x10, x10, x25"
+void loadInstructions(Instruction_Memory *i_mem, const char *trace)
 {
-    Core *core = (Core *)malloc(sizeof(Core));
-    core->clk = 0;
-    core->PC = 0;
-    core->instr_mem = i_mem;
-    core->tick = tickFunc;
+    //printf("Loading trace file: %s\n", trace);
 
-    // FIXME, initialize register file here.
-    // core->data_mem[0] = ...
-	core -> data_mem[0] = 16;
-	core -> data_mem[1] = 128;
-	core -> data_mem[2] = 8;
-	core -> data_mem[3] = 4;
+    FILE *fd = fopen(trace, "r");
+    if (fd == NULL)
+    {
+        perror("Cannot open trace file. \n");
+        exit(EXIT_FAILURE);
+    }
 
-    // FIXME, initialize data memory here.
-    core->reg_file[25] = 4;
-	core->reg_file[10] = 4;
-	core->reg_file[22] = 1;
+    // Iterate all the assembly instructions
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
 
-    return core;
+    Addr PC = 0; // program counter points to the zeroth location initially.
+    int IMEM_index = 0;
+    while ((read = getline(&line, &len, fd)) != -1)
+    {
+        // Assign program counter
+        i_mem->instructions[IMEM_index].addr = PC;
+
+        // Extract operation for R-Type
+        char *raw_instr = strtok(line, " ");
+        if (strcmp(raw_instr, "add") == 0 ||
+            strcmp(raw_instr, "sub") == 0 ||
+            strcmp(raw_instr, "sll") == 0 ||
+            strcmp(raw_instr, "srl") == 0 ||
+            strcmp(raw_instr, "xor") == 0 ||
+            strcmp(raw_instr, "or")  == 0 ||
+            strcmp(raw_instr, "and") == 0)
+        {
+		//printf("The type of instruction is: %s\n", raw_instr);
+            parseRType(raw_instr, &(i_mem->instructions[IMEM_index]));
+            i_mem->last = &(i_mem->instructions[IMEM_index]);
+        }
+		
+		// Extract operation for I-Type		
+	else if (strcmp(raw_instr, "addi") == 0 ||
+            strcmp(raw_instr, "slli") == 0 ||
+             strcmp(raw_instr, "ld") == 0 )
+        {
+		//printf("The type of instruction is: %s\n", raw_instr);
+    		parseIType(raw_instr, &(i_mem->instructions[IMEM_index]));
+            i_mem->last = &(i_mem->instructions[IMEM_index]);
+        }
+		
+		
+		// Extract operation for SB-Type		
+     else if (strcmp(raw_instr, "bne") == 0  )
+        {
+            parseSBType(raw_instr, &(i_mem->instructions[IMEM_index]));
+            i_mem->last = &(i_mem->instructions[IMEM_index]);
+        } 
+
+        IMEM_index++;
+ PC += 4;
+    }
+
+    fclose(fd);
 }
 
-// FIXME, implement this function
-bool tickFunc(Core *core)
+
+
+
+
+void parseRType(char *opr, Instruction *instr)
 {
-    // Steps may include
-    // (Step 1) Reading instruction from instruction memory
-    unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
+    instr->instruction = 0;
+    unsigned opcode = 0;
+    unsigned funct3 = 0;
+    unsigned funct7 = 0;
+
+    if (strcmp(opr, "add") == 0)
+    {
+        opcode = 51;
+        funct3 = 0;
+        funct7 = 0;
+    }
+
+    char *reg = strtok(NULL, ", ");
+    unsigned rd = regIndex(reg);
+
+    reg = strtok(NULL, ", ");
+    unsigned rs_1 = regIndex(reg);
+
+    reg = strtok(NULL, ", ");
+    reg[strlen(reg)-1] = '\0';
+    unsigned rs_2 = regIndex(reg);
+
+    // Contruct instruction
+    instr->instruction |= opcode;
+    instr->instruction |= (rd << 7);
+    instr->instruction |= (funct3 << (7 + 5));
+    instr->instruction |= (rs_1 << (7 + 5 + 3));
+    instr->instruction |= (rs_2 << (7 + 5 + 3 + 5));
+    instr->instruction |= (funct7 << (7 + 5 + 3 + 5 + 5));
+}
+
+
+
+
+void parseIType(char *opr, Instruction *instr)
+{
+    instr->instruction = 0;
+    unsigned opcode = 0;
+    unsigned funct3 = 0;
+    unsigned immediate = 0;
+
+    if (strcmp(opr, "addi") == 0)
+    {
+        opcode = 19;
+        funct3 = 0;       
     
-    // (Step 2) ...
+
+		char *reg = strtok(NULL, ", ");
+		unsigned rd = regIndex(reg);
+
+		reg = strtok(NULL, ", ");
+		unsigned rs_1 = regIndex(reg);
+
+		reg = strtok(NULL, ", ");
+		reg[strlen(reg)-1] = '\0';
+		unsigned imm = atoi(reg);
+		
+
+		// Contruct instruction
+		instr->instruction |= opcode;
+		instr->instruction |= (rd << 7);
+		instr->instruction |= (funct3 << (7 + 5));
+		instr->instruction |= (rs_1 << (7 + 5 + 3));
+		instr->instruction |= (imm << (7 + 5 + 3 + 5));		
+	}
+	else if (strcmp(opr, "ld") == 0 )
+	{
+		opcode = 3;
+        funct3 = 3;       
+		  
+
+		char *reg = strtok(NULL, ", ");
+		char *immChar = strtok(NULL, "(");
+		unsigned imm = atoi(immChar);
+		unsigned rd = regIndex(reg);
+
+		reg = strtok(NULL, ")");
+		unsigned rs_1 = regIndex(reg);
+
+		// Contruct instruction
+		instr->instruction |= opcode;
+		instr->instruction |= (rd << 7);
+		instr->instruction |= (funct3 << (7 + 5));
+		instr->instruction |= (rs_1 << (7 + 5 + 3));
+		instr->instruction |= (imm << (7 + 5 + 3 + 5));	
+		
+	}
+	
+	if (strcmp(opr, "slli") == 0)
+    {
+        opcode = 19;
+        funct3 = 1;       
     
-    // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
-	// call control unit 
-	ControlUnit(instruction, ControlSignals *signals);
-	//Alu control 
-	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
-	//get reg values
-	
-	// call alu ---> don't know how to handle the registers 	
-	ALU(reg_file[0],reg_file[0],aluControlResult,Signal *ALU_result,Signal *zero);
-	//call 
-	
-	
-	 if (1) // figure out conditional. Mux control on the left? 
-	 {
-		core->PC += 4;
-	 else
-		 core->PC = ;
-	 }
+
+		char *reg = strtok(NULL, ", ");
+		unsigned rd = regIndex(reg);
+
+		reg = strtok(NULL, ", ");
+		unsigned rs_1 = regIndex(reg);
+
+		reg = strtok(NULL, ", ");
+		reg[strlen(reg)-1] = '\0';
+		unsigned shamt = atoi(reg);
+
+		// Contruct instruction
+		instr->instruction |= opcode;
+		instr->instruction |= (rd << 7);
+		instr->instruction |= (funct3 << (7 + 5));
+		instr->instruction |= (rs_1 << (7 + 5 + 3));
+		instr->instruction |= (shamt << (7 + 5 + 3 + 5));		
+		instr->instruction |= (0 << (7 + 5 + 3 + 5 + 5));		
+		
+	}
+}
+
+
+ void parseSBType(char *opr, Instruction *instr)
+{
+    instr->instruction = 0;
+    unsigned opcode = 0;
+    unsigned funct3 = 0;    
+    if (strcmp(opr, "bne") == 0)
+    {
+        opcode = 103;
+        funct3 = 1;       
     
-
-    ++core->clk;
-    // Are we reaching the final instruction?
-    if (core->PC > core->instr_mem->last->addr)
-    {
-        return false;
-    }
-    return true;
-}
-
-// FIXME (1). Control Unit. Refer to Figure 4.18.
-void ControlUnit(Signal input,
-                 ControlSignals *signals)
-{
-    // For R-type
-    if (input == 51)
-    {
-        signals->ALUSrc = 0;
-        signals->MemtoReg = 0;
-        signals->RegWrite = 1;
-        signals->MemRead = 0;
-        signals->MemWrite = 0;
-        signals->Branch = 0;
-        signals->ALUOp = 2;
-    }
-	// For I-type -- ld
-    if (input == 3)
-    {
-        signals->ALUSrc = 0;
-        signals->MemtoReg = 1;
-        signals->RegWrite = 1;
-        signals->MemRead = 1;
-        signals->MemWrite = 0;
-        signals->Branch = 0;
-        signals->ALUOp = 3;
-    }
-}
-
-// FIXME (2). ALU Control Unit. Refer to Figure 4.12.
-Signal ALUControlUnit(Signal ALUOp,
-                      Signal Funct7,
-                      Signal Funct3)
-{
-    // For add
-    if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
-    {
-        return 2;
-    }
-	// For ldd
-    if (ALUOp == 2 && Funct3 == 7)
-    {
-        return 3;
-    }
+		char *reg = strtok(NULL, ", ");
+		unsigned rs_1 = regIndex(reg);
+		reg = strtok(NULL, ", ");
+		unsigned rs_2 = regIndex(reg);
+		reg = strtok(NULL, ", ");
+		reg[strlen(reg)-1] = '\0';		
+		int imm = atoi(reg);
+		//printf("The imm initial number is %d\n",imm);
+		int neg = 0;
+		unsigned int imm1, imm2, imm3, imm4;
+		if(imm < 0)
+		{
+			//two's comp 
+			imm = (~abs(imm) )+1;
+			neg = 1;
+			
+		}
+		//printf("The twos comp of the imm is %d\n",imm);
+		// Contruct instruction				
+		imm1 = imm; // imm 11
+		imm1 = (imm1 & (1 << 10)) ;
+		imm1 = imm1 >> 10;	
+		imm2 = imm; // imm 4:1
+		imm2 = 15&imm2;// [4:1]
+		imm3 = imm;
+		imm3 = 63&(imm3>>4); // imm 10:5
+		
+		instr->instruction |= opcode;		
+		instr->instruction |= (imm1 << 7);
+		instr->instruction |= (imm2 << (7 + 1));		
+		instr->instruction |= (funct3 << (7 + 1 +  4));
+		instr->instruction |= (rs_1 << (7 + 1 +  4 + 3));		
+		instr->instruction |= (rs_2 << (7+1+4+3+5));
+		instr->instruction |= (imm3 << (7+1+4+3+5+5));	
+		instr->instruction |= (neg << (7+1+4+3+5+5+6));			
+		
 	
-}
-
-// FIXME (3). Imme. Generator
-Signal ImmeGen(Signal input)
-{
-	ImmeGen = input;
-}
-
-// FIXME (4). ALU
-void ALU(Signal input_0,
-         Signal input_1,
-         Signal ALU_ctrl_signal,
-         Signal *ALU_result,
-         Signal *zero)
-{
-    // For addition
-    if (ALU_ctrl_signal == 2)
-    {
-        *ALU_result = (input_0 + input_1);
-        if (*ALU_result == 0) { *zero = 1; } else { *zero = 0; }
-    }
-	// For ld
-    if (ALU_ctrl_signal == 3)
-    {
-        *ALU_result = input_1;
-        if (*ALU_result == 0) { *zero = 1; } else { *zero = 0; }
-    }
 	
+		
+	}
 }
+ 
 
-// (4). MUX
-Signal MUX(Signal sel,
-           Signal input_0,
-           Signal input_1)
-{
-    if (sel == 0) { return input_0; } else { return input_1; }
-}
 
-// (5). Add
-Signal Add(Signal input_0,
-           Signal input_1)
-{
-    return (input_0 + input_1);
-}
 
-// (6). ShiftLeft1
-Signal ShiftLeft1(Signal input)
+
+
+int regIndex(char *reg)
 {
-    return input << 1;
+    unsigned i = 0;
+                                            
+for (i; i < NUM_OF_REGS; i++)
+    {
+        if (strcmp(REGISTER_NAME[i], reg) == 0)
+        {
+            break;
+        }
+    }
+
+    return i;
 }
