@@ -68,6 +68,10 @@ bool tickFunc(Core *core)
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
 
 	signal branch_location = Add(incremented_instruction,aluControlResult<<1);
+	//** memory access 
+	
+	
+	
 	// mux 3
 	signal mux_3_control = *zero && signals->Branch ;
 	signal mux_3_signal = MUX( mux_3_control,incremented_instruction,branch_location);
@@ -111,8 +115,8 @@ void ControlUnit(Signal input,
         signals->ALUOp = 3;
     }
 	
-	// For I-type -- slli 
-    if (input == 3)
+	// For I-type -- slli <------------------ fix this
+    if (input == 19)
     {
         signals->ALUSrc = 1;
         signals->MemtoReg = 0;
@@ -121,6 +125,18 @@ void ControlUnit(Signal input,
         signals->MemWrite = 0;
         signals->Branch = 0;
         signals->ALUOp = 3;
+    }
+	
+	// For sb-type -- bne <--------------------- fix this
+    if (input == 99)
+    {
+        signals->ALUSrc = 0;
+        signals->MemtoReg = 0;
+        signals->RegWrite = 0;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 1;
+        signals->ALUOp = 0;
     }
 }
 
