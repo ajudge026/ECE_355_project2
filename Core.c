@@ -39,7 +39,7 @@ bool tickFunc(Core *core)
 	// call control unit 
 	Signal control_unit_input = (instruction / 64);
 	ControlSignals *signals;
-	ControlUnit(control_unit_input, *signals);
+	ControlUnit(control_unit_input, signals);
 	// run immGen 
 	Signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
 	
@@ -56,14 +56,14 @@ bool tickFunc(Core *core)
 		reg_read_1 = core->reg_file[reg_index_1];
 		reg_read_2 = core->reg_file[reg_index_2];
 	else if (signals->RegWrite == 1)		
-		core->reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
+		core->reg_file[reg_index_1] = 0:// result of memory manipulation Mux all the way to the right
 	else
 	}
 	
 	//call 
 	// ** execute / address calc
 	// mux1
-	Signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
+	Signal mux_1_signal = MUX( signals->ALUSrc, reg_read_2,ImmeGen_sig);
 			
 	
 	
