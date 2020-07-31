@@ -58,7 +58,7 @@ bool tickFunc(Core *core)
 	}
 	else if (signals->RegWrite == 1)		
 	{
-		core->reg_file[reg_index_1] = 0:// result of memory manipulation Mux all the way to the right
+		core->reg_file[reg_index_1] = 0;// result of memory manipulation Mux all the way to the right
 	
 	}
 	
@@ -74,14 +74,14 @@ bool tickFunc(Core *core)
 	// alu 	
 	Signal *ALU_result = 0 ;
 	Signal *zero = 0;
-	Signal alu_result = ALU(reg_read_1,mux_1_signal,aluControlResult, ALU_result, zero);
+	ALU(reg_read_1,mux_1_signal,aluControlResult, ALU_result, zero);
 	
 	Signal branch_location = Add(incremented_instruction,aluControlResult<<1);
 	//** memory access 
 	
 	Signal memory_result ;
 	memory_result = 0; // <----------------------- will fix when  dealing with ld 
-	Signal mux_2_signal = MUX(signals->MemtoReg, alu_result, memory_result); // fix this 
+	Signal mux_2_signal = MUX(signals->MemtoReg, ALU_result, memory_result); // fix this 
 	// <-------------------- figure out how i type loads results in  register 
 	
 	
@@ -92,7 +92,7 @@ bool tickFunc(Core *core)
 	//write results
 	core->reg_file[write_register] = mux_3_signal;
 	incremented_instruction = core->PC = mux_3_signal;
-	printf("The data in register %d is %d",write_register, core->reg_file[write_register]);
+	printf("The data in register %x is %x",write_register, core->reg_file[write_register]);
     
 
     ++core->clk;
@@ -177,7 +177,7 @@ Signal ALUControlUnit(Signal ALUOp,
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input)
 {
-	long int ImmeGen = input;
+	long ImmeGen = input;
 }
 
 // FIXME (4). ALU
