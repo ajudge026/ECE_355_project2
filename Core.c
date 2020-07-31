@@ -33,12 +33,13 @@ bool tickFunc(Core *core)
 	// Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
-	Signal incremented_instruction core->PC += 4;	
+	Signal incremented_instruction = core->PC += 4;	
 	//** decoding / reg reading  **
 	
 	// call control unit 
 	Signal control_unit_input = (instruction / 64);
-	ControlUnit(control_unit_input, ControlSignals *signals);
+	ControlSignals *signals;
+	ControlUnit(control_unit_input, *signals);
 	// run immGen 
 	Signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
 	
@@ -49,13 +50,13 @@ bool tickFunc(Core *core)
 	reg_index_1 = (instruction / 524288)>>15;
 	reg_index_2 = (instruction / 16777216)>>20;
 	write_register = (instruction / 2048)>>7;
-	Signal reg_read_1, reg_read_2
+	Signal reg_read_1, reg_read_2;
 	if ( signals->RegWrite== 0 )
 	{
-		reg_read_1 = reg_file[reg_index_1];
-		reg_read_2 = reg_file[reg_index_2];
+		reg_read_1 = core->reg_file[reg_index_1];
+		reg_read_2 = core->reg_file[reg_index_2];
 	else if (signals->RegWrite == 1)		
-		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
+		core->reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
 	else
 	}
 	
@@ -68,8 +69,10 @@ bool tickFunc(Core *core)
 	
 	//Alu control 
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
-	// alu 
-	Signal alu_result = ALU(reg_read_1,mux_1_signal,aluControlResult,Signal *ALU_result,Signal *zero);
+	// alu 	
+	Signal *ALU_result = 0 ;
+	Signal *zero = 0;
+	Signal alu_result = ALU(reg_read_1,mux_1_signal,aluControlResult, ALU_result, zero);
 	
 	Signal branch_location = Add(incremented_instruction,aluControlResult<<1);
 	//** memory access 
@@ -85,9 +88,9 @@ bool tickFunc(Core *core)
 	Signal mux_3_control = *zero && signals->Branch ;
 	Signal mux_3_signal = MUX( mux_3_control,incremented_instruction,branch_location);
 	//write results
-	reg_file[write_register] = mux_3_signal;
-	incremented_instruction core->PC = mux_3_signal;
-	printf("The data in register %d is %d",write_register, reg_file[write_register]);
+	core->reg_file[write_register] = mux_3_signal;
+	incremented_instruction = core->PC = mux_3_signal;
+	printf("The data in register %d is %d",write_register, core->reg_file[write_register]);
     
 
     ++core->clk;
