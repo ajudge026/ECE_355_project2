@@ -36,6 +36,8 @@ bool tickFunc(Core *core)
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
 	// call control unit 
 	signal control_unit_input = (instruction / 64);
+	// run immGen 
+	signal ImmeGen_sig = ImmeGen(instruction);
 	ControlUnit(control_unit_input, ControlSignals *signals);
 	//Alu control 
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
@@ -52,19 +54,23 @@ bool tickFunc(Core *core)
 		reg_read_1 = reg_file[reg_index_1];
 		reg_read_2 = reg_file[reg_index_2];
 	else if (write_dat == 1)		
-		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right 
+		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
+	else
 	}
+	// mux1
+	signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
 	// Reading / writing regs 	
-	ALU(reg_file[0],reg_file[0],aluControlResult,Signal *ALU_result,Signal *zero);
+	ALU(reg_read_1,mux_1_signal,aluControlResult,Signal *ALU_result,Signal *zero);
 	//call 
 	
 	
-	 if (1) // figure out conditional. Mux control on the left? 
-	 {
-		core->PC += 4;
-	 else
-		 core->PC = ;
-	 }
+	signal incremented_instruction core->PC += 4;
+	signal branch_location = Add(incremented_instruction,aluControlResult<<1);
+	// mux 3
+	signal mux_3_control = *zero && signals->Branch ;
+	signal mux_3_signal = MUX( mux_3_control,incremented_instruction,branch_location);
+	incremented_instruction core->PC = mux_3_signal;
+	
     
 
     ++core->clk;
@@ -125,7 +131,7 @@ Signal ALUControlUnit(Signal ALUOp,
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input)
 {
-	ImmeGen = input;
+	long int ImmeGen = input;
 }
 
 // FIXME (4). ALU
