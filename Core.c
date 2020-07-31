@@ -33,50 +33,61 @@ bool tickFunc(Core *core)
 	// Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
-	signal incremented_instruction core->PC += 4;	
+	Signal incremented_instruction core->PC += 4;	
 	//** decoding / reg reading  **
 	
 	// call control unit 
-	signal control_unit_input = (instruction / 64);
+	Signal control_unit_input = (instruction / 64);
+	ControlUnit(control_unit_input, ControlSignals *signals);
 	// run immGen 
-	signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
+	Signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
 	
 	//get reg values
 	
 	// get inputs for reg file from instructions
-	int reg_index_1,reg_index_2,write_dat;
+	int reg_index_1,reg_index_2,write_register;
 	reg_index_1 = (instruction / 524288)>>15;
 	reg_index_2 = (instruction / 16777216)>>20;
-	write_dat = (instruction / 2048)>>7;
-	signal reg_read_1, reg_read_2
-	if (write_dat == 0 )
+	write_register = (instruction / 2048)>>7;
+	Signal reg_read_1, reg_read_2
+	if ( signals->RegWrite== 0 )
 	{
 		reg_read_1 = reg_file[reg_index_1];
 		reg_read_2 = reg_file[reg_index_2];
-	else if (write_dat == 1)		
+	else if (signals->RegWrite == 1)		
 		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right
 	else
 	}
-	// Reading / writing regs 		
-	ALU(reg_read_1,mux_1_signal,aluControlResult,Signal *ALU_result,Signal *zero);
+	
 	//call 
 	// ** execute / address calc
 	// mux1
-	signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
-	ControlUnit(control_unit_input, ControlSignals *signals);
+	Signal mux_1_signal = MUX( signals->ALUSrc,reg_read_2,ImmeGen_sig);
+			
+	
+	
 	//Alu control 
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
-
-	signal branch_location = Add(incremented_instruction,aluControlResult<<1);
+	// alu 
+	Signal alu_result = ALU(reg_read_1,mux_1_signal,aluControlResult,Signal *ALU_result,Signal *zero);
+	
+	Signal branch_location = Add(incremented_instruction,aluControlResult<<1);
 	//** memory access 
+	
+	Signal memory_result ;
+	memory_result = 0; // <----------------------- will fix when  dealing with ld 
+	Signal mux_2_signal = MUX(signals->MemtoReg, alu_result, memory_result); // fix this 
+	// <-------------------- figure out how i type loads results in  register 
 	
 	
 	
 	// mux 3
-	signal mux_3_control = *zero && signals->Branch ;
-	signal mux_3_signal = MUX( mux_3_control,incremented_instruction,branch_location);
+	Signal mux_3_control = *zero && signals->Branch ;
+	Signal mux_3_signal = MUX( mux_3_control,incremented_instruction,branch_location);
+	//write results
+	reg_file[write_register] = mux_3_signal;
 	incremented_instruction core->PC = mux_3_signal;
-	
+	printf("The data in register %d is %d",write_register, reg_file[write_register]);
     
 
     ++core->clk;
