@@ -35,12 +35,26 @@ bool tickFunc(Core *core)
     
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
 	// call control unit 
-	ControlUnit(instruction, ControlSignals *signals);
+	signal control_unit_input = (instruction / 64);
+	ControlUnit(control_unit_input, ControlSignals *signals);
 	//Alu control 
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
 	//get reg values
 	
-	// call alu ---> don't know how to handle the registers 	
+	// get inputs for reg file from instructions
+	int reg_index_1,reg_index_2,write_dat;
+	reg_index_1 = (instruction / 524288)>>15;
+	reg_index_2 = (instruction / 16777216)>>20;
+	write_dat = (instruction / 2048)>>7;
+	signal reg_read_1, reg_read_2
+	if (write_dat == 0 )
+	{
+		reg_read_1 = reg_file[reg_index_1];
+		reg_read_2 = reg_file[reg_index_2];
+	else if (write_dat == 1)		
+		reg_file[reg_index_1] = // result of memory manipulation Mux all the way to the right 
+	}
+	// Reading / writing regs 	
 	ALU(reg_file[0],reg_file[0],aluControlResult,Signal *ALU_result,Signal *zero);
 	//call 
 	
