@@ -38,7 +38,7 @@ bool tickFunc(Core *core)
 	
 	// call control unit 
 	Signal control_unit_input = (instruction / 64);
-	ControlSignals *signals;
+	ControlSignals *signals = NULL;
 	ControlUnit(control_unit_input, signals);
 	// run immGen 
 	Signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
@@ -50,7 +50,8 @@ bool tickFunc(Core *core)
 	reg_index_1 = (instruction / 524288)>>15;
 	reg_index_2 = (instruction / 16777216)>>20;
 	write_register = (instruction / 2048)>>7;
-	Signal reg_read_1, reg_read_2;
+	Signal reg_read_1 = 0;
+	Signal reg_read_2 = 0;
 	if ( signals->RegWrite== 0 )
 	{
 		reg_read_1 = core->reg_file[reg_index_1];
@@ -72,8 +73,8 @@ bool tickFunc(Core *core)
 	//Alu control 
 	Signal aluControlResult = ALUControlUnit(signals->ALUOp, instruction>>24,instruction >> 11);
 	// alu 	
-	Signal *ALU_result = 0 ;
-	Signal *zero = 0;
+	Signal *ALU_result = NULL;
+	Signal *zero = NULL;
 	ALU(reg_read_1,mux_1_signal,aluControlResult, ALU_result, zero);
 	
 	Signal branch_location = Add(incremented_instruction,aluControlResult<<1);
@@ -92,7 +93,7 @@ bool tickFunc(Core *core)
 	//write results
 	core->reg_file[write_register] = mux_3_signal;
 	incremented_instruction = core->PC = mux_3_signal;
-	printf("The data in register %x is %x",write_register, core->reg_file[write_register]);
+	//printf("The data in register %x is %lx",write_register, core->reg_file[write_register]);
     
 
     ++core->clk;
