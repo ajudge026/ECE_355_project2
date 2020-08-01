@@ -27,6 +27,7 @@ Core *initCore(Instruction_Memory *i_mem)
 // FIXME, implement this function
 bool tickFunc(Core *core)
 {           
+
 	// *********** organized by processing stages (lecture notes #9 )****************
 	
 	//** instruction fetch **
@@ -34,15 +35,17 @@ bool tickFunc(Core *core)
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
 	Signal incremented_instruction = core->PC += 4;	
+	printf("inside tick function ");
 	//** decoding / reg reading  **
 	
 	// call control unit 
-	Signal control_unit_input = (instruction / 64);
+	 Signal control_unit_input = (instruction / 64);
 	ControlSignals *signals = NULL;
 	ControlUnit(control_unit_input, signals);
 	// run immGen 
+		
 	Signal ImmeGen_sig = ImmeGen(instruction); // <------------------------------------ not finished, fix this!!!!!!!!!!!!!
-	
+
 	//get reg values
 	
 	// get inputs for reg file from instructions
@@ -62,7 +65,7 @@ bool tickFunc(Core *core)
 		core->reg_file[reg_index_1] = 0;// result of memory manipulation Mux all the way to the right
 	
 	}
-	
+
 	//call 
 	// ** execute / address calc
 	// mux1
@@ -94,8 +97,8 @@ bool tickFunc(Core *core)
 	core->reg_file[write_register] = mux_3_signal;
 	incremented_instruction = core->PC = mux_3_signal;
 	//printf("The data in register %x is %lx",write_register, core->reg_file[write_register]);
-    
-
+ 
+ 
     ++core->clk;
     // Are we reaching the final instruction?
     if (core->PC > core->instr_mem->last->addr)
@@ -178,7 +181,8 @@ Signal ALUControlUnit(Signal ALUOp,
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input)
 {
-	long ImmeGen = input;
+	//long ImmeGen_var = (long )input;
+	return input;
 }
 
 // FIXME (4). ALU
