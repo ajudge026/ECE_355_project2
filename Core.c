@@ -81,7 +81,7 @@ bool tickFunc(Core *core)
 	
 	Signal memory_result ;
 	memory_result = 0; // <----------------------- will fix when  dealing with ld 
-	Signal mux_2_signal = MUX(signals->MemtoReg, ALU_result, memory_result); // fix this 
+	Signal mux_2_signal = MUX(signals->MemtoReg, *ALU_result, memory_result); // fix this 
 	// <-------------------- figure out how i type loads results in  register 
 	
 	
